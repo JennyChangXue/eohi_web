@@ -1,0 +1,52 @@
+*{
+  font-family: "Microsoft YaHei" !important;
+  font-size: 14px;
+  box-sizing:border-box
+}
+/*向左向右浮动*/
+.fl{
+  float:left;
+}
+.fr{
+  float: right;
+}
+/*清除浮动*/
+.clearFix:after{
+  display: block;
+  clear: both;
+  content:'';
+  visibility: hidden;
+  height: 0;
+}
+.clearFix{
+  zoom: 1;
+}
+/*上padding、margin 为10px*/
+.paddingTop10{
+  padding-top:10px
+}
+.marginTop10{
+  margin-top: 10px;
+}
+.tableHeader /deep/ .el-button--warning{
+  background:#feb402;
+  border-color: #feb402;
+  height:36px;
+  padding:0px 20px;
+}
+.el-form-item__label {
+  text-align: right;
+  vertical-align: middle;
+  float: left;
+  font-size: 14px;
+  color: #606266;
+  line-height: 40px;
+  padding: 0 12px 0 0;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+}
+.el-button--primary{
+  color: #FFF;
+  background-color: #36a3f7 !important;
+  border-color: #36a3f7 !important;;
+}
