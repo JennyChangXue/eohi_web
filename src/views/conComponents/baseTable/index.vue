@@ -4,7 +4,7 @@
     <el-table
       :data="tableOptions.tableData"
       select-on-indeterminate
-      border
+      :border = "border"
       :header-cell-style="{background:'#fafafa','text-align':'center'}"
       :cell-style="{'text-align':'center'}"
       :max-height="tableOptions.maxHeight"
@@ -110,7 +110,7 @@
       </template>
       <slot></slot>
     </el-table>
-    <con-pagination  ref='pageDom' v-if="totals != 0" :currentPage="this.current" @pageChange="pageChange" :totals="total1" :pageSize="size"></con-pagination>
+    <con-pagination  ref='pageDom' v-if="totals != 0" :currentPage="this.current" @pageChange="pageChange" @sizeChange="sizeChange" :totals="total1" :pageSizes="pageSizes" :pageSize="size1"></con-pagination>
   </div>
 </template>
 <script>
@@ -118,12 +118,15 @@ import conPagination from '@/views/conComponents/conPagination2';
 import myColumn from './myColumn';
 export default {
   name: 'baseTable',
-  //    functional:true,
   components: {
     conPagination,
     myColumn
   },
   props: {
+    border: {
+      type: Boolean,
+      default: true
+    },
     tableOptions: {
       type: Object
     },
@@ -145,7 +148,9 @@ export default {
     return {
       current: 0,
       total1,
-      loading: true
+      size1: this.size,
+      loading: true,
+      pageSizes: [10, 20, 50]
     };
   },
   watch: {
@@ -154,6 +159,10 @@ export default {
     }
   },
   methods: {
+    sizeChange (size) {
+      this.size1 = size;
+      this.$emit('sizeChange', size);
+    },
     // 默认函数
     defaultFuc (row, column, cellValue, index) {
       return cellValue;
@@ -183,9 +192,9 @@ export default {
 <style scoped lang="less" type="text/less">
   .commen_list{
     margin-top: 8px;
-    padding: 15px 15px 5px 15px;
+    padding: 5px 15px 5px 15px;
     background: #fff;
-    border-radius: 6px;
-    box-shadow: #ccc 0px 0px 10px;
+    // border-radius: 4px;
+    // box-shadow: #ccc 0px 0px 10px;
   }
 </style>

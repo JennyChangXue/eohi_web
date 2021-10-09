@@ -9,7 +9,7 @@ files.keys().forEach(key => {
   modules[name] = files(key).default || files(key);
   modules[name].namespaced = true; // 开启命名空间
 });
-console.log(modules);
+// console.log(modules);
 export default new Vuex.Store({
   modules
 });

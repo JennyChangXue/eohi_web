@@ -21,11 +21,24 @@ Vue.use(VueRouter);
 let conRouter = [
   {
     path: '/',
-    component: () => import('@/views/login/LoginHome')
+    component: () => import('@/views/login/login')
+    // children: [
+    //   {
+    //     path: '/',
+    //     component: () => import('@/views/home/home')
+    //   }
+    // ]
   },
+  // 首页
   {
-    path: '/login',
-    component: () => import('@/views/login/LoginHome')
+    path: '/home',
+    component: () => import('@/views/layout/layout'),
+    children: [
+      {
+        path: '/home',
+        component: () => import('@/views/home/home')
+      }
+    ]
   }
 ];
 

@@ -1,5 +1,5 @@
 <template>
-    <el-form style="padding:15px 20px 0;background: #fff;border-radius: 6px;box-shadow:#ccc 0 0 10px" :label-width="formData.labelWidth||'86px'" label-position="right" :inline="true" :model="formData.model" class="search_form" :class="formData.className||''" ref="refName">
+    <el-form style="padding:15px 15px 5px;background: #fff;" :label-width="formData.labelWidth||'70px'" label-position="left" :inline="true" :model="formData.model" class="search_form" :class="formData.className||''" ref="refName">
       <el-row :gutter="0">
         <template v-for="(item,index) in formData.options">
           <template v-if="!item.isHidden">
@@ -37,15 +37,17 @@
                 </template>
               </el-form-item>
             </el-col>
-            <el-col v-else-if="item.type === 'button'" :span="item.span" class="btn-item" :key="index">
+            <el-col v-else-if="item.type === 'button'" :span="24" class="btn-item" :key="index">
               <el-form-item :class="item.isMiddle?'btn_item_content':''">
                 <template v-for="(btn, index) in item.option">
-                  <el-button type="primary" :key="index" :style="{'padding-left':item.padding,'padding-right':item.padding}" v-if="btn.type == 'search'" @click="onSubmit">{{btn.label}}</el-button>
-                  <el-button :style="{'padding-left':item.padding,'padding-right':item.padding}" :key="index" v-else-if="btn.type == 'reset'" @click="resetForm('refName')">{{btn.label}}</el-button>
-                  <el-button type="warning" :style="{'padding-left':item.padding,'padding-right':item.padding}" :key="index" v-else-if="btn.type == 'download'&&$store.state.isExport" @click="withoutCheckDownload">{{btn.label}}</el-button>
-                  <el-button type="success" :style="{'padding-left':item.padding,'padding-right':item.padding}" :key="index"  v-else-if="btn.type == 'refresh'" @click="onSubmit">{{btn.label}}</el-button>
-                  <el-button type="success" :style="{'padding-left':item.padding,'padding-right':item.padding}" :key="index"  v-else-if="btn.type == 'custom'">{{btn.label}}</el-button>
+                  <el-button type="primary" :key="index" :style="{'padding-left':item.padding,'padding-right':item.padding}" v-if="btn.type === 'search'" @click="onSubmit">{{btn.label}}</el-button>
+                  <el-button :style="{'padding-left':item.padding,'padding-right':item.padding}" :key="index" v-else-if="btn.type === 'reset'" @click="resetForm('refName')">{{btn.label}}</el-button>
+                   <el-button type="warning" :style="{'padding-left':item.padding,'padding-right':item.padding}" :key="index" v-else-if="btn.type === 'download'" @click="withoutCheckDownload">{{btn.label}}</el-button>
+                  <el-button type="success" :style="{'padding-left':item.padding,'padding-right':item.padding}" :key="index"  v-else-if="btn.type === 'refresh'" @click="onSubmit">{{btn.label}}</el-button>
+                  <el-button type="success" :style="{'padding-left':item.padding,'padding-right':item.padding}" :key="index"  v-else-if="btn.type === 'custom'">{{btn.label}}</el-button>
+                  <el-button :type="btn.btnType||'primary'" :style="{'padding-left':item.padding,'padding-right':item.padding}" :key="index"  v-else @click="btn.handle()">{{btn.label}}</el-button>
                 </template>
+                <slot></slot>
               </el-form-item>
             </el-col>
           </template>
@@ -55,7 +57,9 @@
 </template>
 
 <script>
-import { config } from '@/utils/config.js';
+import config from '@/utils/config.js';
+import axios from 'axios';
+import qs from 'qs';
 export default {
   name: 'searchForm',
   props: {
@@ -173,7 +177,7 @@ export default {
       const options = this.formData.options;
       this.formCatch = {};
       for (const item in options) {
-        if (options[item].type === 'time') {
+        if (options[item].type === 'time' && options[item].timeType === 'daterange') {
           if (this.formData.model[options[item].model]) {
             this.formCatch[options[item].start] = this.formData.model[options[item].model][0];
             this.formCatch[options[item].end] = this.formData.model[options[item].model][1];
@@ -202,7 +206,7 @@ export default {
       this.$refs[refName].resetFields();
       const options = this.formData.options;
       for (const item in options) {
-        if (options[item].type === 'time') {
+        if (options[item].type === 'time' && options[item].timeType === 'daterange') {
           if (this.formData.model[options[item].model]) {
             this.formData.model[options[item].model][0] = '';
             this.formData.model[options[item].model][1] = '';
@@ -225,17 +229,32 @@ export default {
       this.$emit('reSearch', this.formCatch);
     },
     withoutCheckDownload () {
-      const token = localStorage.getItem('tokenStr');
-      let parmStr = '';
-      if (this.formOptions.downloadUrl.indexOf('?') === -1) {
-        parmStr = '?token=' + token;
-      } else {
-        parmStr = '&token=' + token;
-      }
-      for (const item in this.formCatch) {
-        parmStr += `&${item}=${this.formCatch[item]}`;
-      }
-      window.open(config.baseURL + this.formOptions.downloadUrl + parmStr);
+      // const token = localStorage.getItem('tokenStr');
+      // let parmStr = '';
+      // if (this.formOptions.downloadUrl.indexOf('?') === -1) {
+      //   parmStr = '?Auth=' + 'Bearer ' + token;
+      // } else {
+      //   parmStr = '&Auth=' + 'Bearer ' + token;
+      // }
+      // for (const item in this.formCatch) {
+      //   parmStr += `&${item}=${this.formCatch[item]}`;
+      // }
+      // console.log(config);
+      // // 在URL中添加身份验证头
+      // window.open(config.baseUrl + this.formOptions.downloadUrl + parmStr);
+      axios.post(config.baseUrl + this.formOptions.downloadUrl, qs.stringify({ ...this.formCatch }), { responseType: 'blob', headers: { Auth: 'Bearer ' + window.atob(localStorage.token) } }).then((res) => {
+        var fileName = decodeURI(res.headers['content-disposition'].split(';')[1].split('=')[1]);
+        const blob = res.data;
+        var reader = new FileReader();
+        reader.readAsDataURL(blob); // 转换为base64，可以直接放入a标签href
+        reader.onload = function (e) {
+          const link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.download = fileName;
+          link.click();
+          link.remove();
+        };
+      });
     },
     refresh () {
       this.$emit('reSearch', this.formCatch);
@@ -248,7 +267,7 @@ export default {
 <style scoped lang="less">
   .el-form-item{
     width:100%;
-    margin-bottom:4px;
+    margin-bottom:15px;
     margin-right: 0;
   }
   .el-date-editor.el-input, .el-date-editor.el-input__inner{

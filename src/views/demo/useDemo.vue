@@ -1,15 +1,15 @@
 <template>
   <div class="container">
     <search-form ref="formDemo" @reSearch="reSearch" :formOptions = "formOptions"></search-form>
-<!--    表格,自带翻页器-->
-    <base-table ref="listTable" :tableOptions="tableOptions" :totals="totals" @onPageChange="onPageChange"
+    <!--表格,自带翻页器-->
+    <base-table ref="listTable" :tableOptions="tableOptions" :totals="totals" @onPageChange="onPageChange"  @selectionChange="selectionChange"
                 :size="Number(size)">
-<!--      表头的插槽 table-header-->
+      <!--表头的插槽 table-header-->
       <div class="paddingBottom10" slot="table-header">
         <el-button type="warning" plain @click="autoAssign">自动分配客户</el-button>
         <span class="orderNum1 orderNum">{{'总客户数：'}}</span>
       </div>
-<!--      操作-->
+      <!--操作-->
       <el-table-column
         fixed="right"
         label="操作"
@@ -19,7 +19,7 @@
         </template>
       </el-table-column>
     </base-table>
-<!--    翻页器-->
+    <!--翻页器-->
     <con-pagination  ref='pageDom' :currentPage="current" @pageChange="pageChange" :pageSize="size"></con-pagination>
   </div>
 </template>
@@ -138,6 +138,11 @@ export default {
               {
                 type: 'download',
                 label: '导出'
+              },
+              {
+                btnType: 'error',
+                label: '批量删除',
+                handle: this.dels
               }
             ]
           }
@@ -178,6 +183,11 @@ export default {
     };
   },
   methods: {
+    selectionChange (row) {
+    },
+    dels () {
+      console.log('批量删除');
+    },
     // 切换分页
     onPageChange (page) {
       this.current = page.toString();
