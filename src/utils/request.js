@@ -1,29 +1,16 @@
-import axios from "axios";
-import service from "@/api";
-import { Message, Loading } from "element-ui";
-import JSONbig from 'json-bigint';
-import sign from "@/utils/sign";
-import store from '@/store';
-import tool from "@/utils/tool";
-import router from "@/router/index";
+import axios from 'axios';
+import qs from 'qs';
+import service from '@/api';
+import { Message, Loading } from 'element-ui';
+// import tool from '@/utils/tool';
 // // service 循环遍历输出不同的请求方法
+const baseConfig = require('./config.js');
 const instance = axios.create({
   baseURL: process.env.VUE_APP_BASE_URL,
-  timeout: 200000,
-  // 处理数字精度丢失问题
-  transformResponse: [function (data) {
-    try {
-      return JSONbig.parse(data);
-    } catch (err) { return data; }
-  }]
+  timeout: 10000,
+  withCredentials: false
 });
-const errMessage = (err) => {
-  if (err.data && err.data.msg) {
-    Message.error({ message: err.data.msg });
-  }
-};
 let loading;
-const pendings = [];
 const Request = {}; // 包裹请求方法的容器
 // 请求格式/参数的统一
 for (const key in service) {
@@ -33,31 +20,33 @@ for (const key in service) {
     const api = module[item]; // url method
     Request[key][item] = async function (
       params, // 请求参数 get：url，put，post，patch（data），delete：url
-      isFormData = true, // 标识是否是form-data请求
+      isFormData = false, // 标识是否是form-data请求
       config = {} // 配置参数
     ) {
-      let newParams = {};
-      //  content-type是否是form-data的判断
-      if (params && isFormData) {
-        newParams = new FormData();
-        for (const i in params) {
-          // 如果参数是数组
-          if (tool.isKeyType(params[i], 'array')) {
-            const itemArray = params[i];
-            if (itemArray.length > 0) {
-              for (let j = 0; j < itemArray.length; j++) {
-                newParams.append(`${i}[${j}]`, itemArray[j]);
-              }
-            } else {
-              newParams.append(`${i}`, []);
-            }
-          } else {
-            newParams.append(i, params[i]);
-          }
-        }
-      } else {
-        newParams = params;
-      }
+      // console.log(isFormData);
+      // let newParams = {};
+      // //  content-type是否是form-data的判断
+      // if (params && isFormData) {
+      //   newParams = new FormData();
+      //   for (const i in params) {
+      //     // 如果参数是数组
+      //     if (tool.isKeyType(params[i], 'array')) {
+      //       const itemArray = params[i];
+      //       if (itemArray.length > 0) {
+      //         for (let j = 0; j < itemArray.length; j++) {
+      //           newParams.append(`${i}[${j}]`, itemArray[j]);
+      //         }
+      //       } else {
+      //         newParams.append(`${i}`, []);
+      //       }
+      //     } else {
+      //       newParams.append(i, params[i]);
+      //     }
+      //   }
+      // } else {
+      //   newParams = params;
+      // }
+      // console.log(newParams);
       // 一个项目多个接口用不同的baseURL
       if (api.baseURL) {
         instance.defaults.baseURL = api.baseURL;
@@ -66,29 +55,22 @@ for (const key in service) {
       }
       // 不同请求的判断
       let response = {}; // 请求的返回值
-      if (api.method === "put" || api.method === "post" || api.method === "patch") {
+      if (api.method === 'put' || api.method === 'post' || api.method === 'patch') {
         try {
-          response = await instance[api.method](api.url, newParams, config);
+          // config.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+          params = isFormData ? params : qs.stringify(params);
+          response = await instance[api.method](api.url, params, config);
         } catch (err) {
           response = err;
-          errMessage(response);
+          // console.log(err);
           throw (response);
         }
-      } else if (api.method === "get") {
-        config.params = newParams;
+      } else if (api.method === 'delete' || api.method === 'get') {
+        config.params = params;
         try {
-          response = await instance[api.method](api.url, config);
+          response = await instance[api.method](api.url, config); // axios.get()
         } catch (err) {
           response = err;
-          errMessage(response);
-          throw (response);
-        }
-      } else if (api.method === "delete") {
-        try {
-          response = await instance[api.method](api.url, { data: newParams }, config);
-        } catch (err) {
-          response = err;
-          errMessage(response);
           throw (response);
         }
       }
@@ -99,66 +81,54 @@ for (const key in service) {
 // 拦截器的添加
 // 请求拦截器
 instance.interceptors.request.use(config => {
+  // config.headers['Content-Type'] = 'application/x-www-form-urlencoded';
   // 发起请求前
-  // 判断是否加载loding
-  if (!pendings.length && !(config && config.noLoading)) {
-    loading = Loading.service({
-      fullscreen: true,
-      lock: true,
-      text: "加载中...",
-      spinner: "el-icon-loading",
-      background: "rgba(0, 0, 0, 0.7)"
-    });
-  }
-  !config.noLoading && pendings.push(config);
-  // 接口鉴权
-  if (store.state.user.token) {
-    config.headers.authorization = 'Bearer ' + store.state.user.token;
-  }
-  const headers = sign();
-  for (const key in headers) {
-    config.headers[key] = headers[key];
+  loading = Loading.service({
+    fullscreen: true,
+    lock: true,
+    text: 'Loading',
+    spinner: 'el-icon-loading',
+    background: 'rgba(0, 0, 0, 0.7)'
+  });
+  if (localStorage.getItem('token')) {
+    config.headers.Auth = 'Bearer ' + window.atob(localStorage.getItem('token'));
   }
   return config;
 }, (e) => {
   // 请求错误
-  !(e.config && e.config.noLoading) ? loading.close() : '';
-  Message.error({ message: "请求错误，请求稍后重试" });
+  loading.close();
+  Message.error({ message: '请求错误，请求稍后重试' });
   throw (e);
 });
 // 响应拦截器
 instance.interceptors.response.use(res => {
   // 请求成功
-  const index = pendings.indexOf(res.config);
-  index !== -1 && pendings.splice(index, 1);
-  if (!pendings.length && !(res.config && res.config.noLoading)) {
-    loading.close();
-    loading = "";
-  }
-  // token过期，重新登录
-  // res.data.error = 1005;
-  // 1004 身份验证失败
-  if (res.data.error === 1005 || res.data.error === 1004) {
-    store.commit('user/clearUserInfo');
-    // window.location.href = '/#/login';
-    router.push('/login');
-    if (res.data.error === 1005) {
-      window.location.reload();
+  loading.close();
+  if (res.status === 200) {
+    if (res.data.code) {
+      if (res.data.code !== 200) {
+        if (res.data.code === 401) { //  登录超时
+          window.location.href = baseConfig.frontendUrl + '/#/login';
+        }
+        if (res.data.msg) {
+          Message.error({ message: res.data.msg });
+        }
+        return (res.data);
+      }
+      // 刷新token
+      if (res.data.refreshToken) {
+        localStorage.setItem('token', res.data.refreshToken);
+      }
+      return res.data;
+    } else {
+      return res;
     }
   }
-  if (res.data.error && res.data.error !== 0) {
-    throw (res);
-  }
-  return res.data;
 }, (e) => {
-  // 判断是否关闭loding
-  const index = pendings.indexOf(e.config);
-  index !== -1 && pendings.splice(index, 1);
-  if (!pendings.length && !(e.config && e.config.noLoading)) {
-    loading.close();
-    loading = "";
-  }
-  Message.error({ message: "请求错误，请求稍后重试" });
+  // console.log(e);
+  loading.close();
+  Message.error({ message: '请求错误，请求稍后重试' });
   throw (e);
+  // ret
 });
 export default Request;
